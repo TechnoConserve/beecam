@@ -1,11 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="Beecam">
+  <component name="PublishConfigData" autoUpload="Always" serverName="Copy of project-level server 'Beecam Remote'">
     <serverData>
       <paths name="Beecam">
         <serverdata>
           <mappings>
             <mapping deploy="beecam" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="Beecam Remote">
+        <serverdata>
+          <mappings>
+            <mapping deploy="beecam" local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="Copy of project-level server 'Beecam Remote'">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/tmp/pycharm_project_994" local="$PROJECT_DIR$" />
           </mappings>
         </serverdata>
       </paths>
