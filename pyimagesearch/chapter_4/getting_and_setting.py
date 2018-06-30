@@ -8,7 +8,7 @@ args = vars(ap.parse_args())
 image = cv2.imread(args["image"])
 cv2.imshow("Original", image)
 
-(b, g, r) = image[0, 0]
+(b, g, r) = image[111, 225]
 print("Pixel at (0, 0) - Red: {}, Green: {}, Blue: {}".format(r, g, b))
 
 image[0, 0] = (0, 0, 255)
