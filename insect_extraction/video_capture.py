@@ -1,17 +1,26 @@
+from imutils.video import FPS, FileVideoStream
 import numpy as np
-import cv2 as cv
+import cv2
+import time
 
-cap = cv.VideoCapture(0)
+stream = FileVideoStream('test30fps.h264').start()
+time.sleep(1.0)
+fps = FPS().start()
 
-while True:
+while stream.more():
     # Capture frame-by-frame
-    ret, frame = cap.read()
+    frame = stream.read()
 
     # Display the resulting frame
-    cv.imshow('frame', frame)
-    if cv.waitKey(1) & 0xFF == ord('q'):
+    cv2.imshow('frame', frame)
+    fps.update()
+    if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
+fps.stop()
+print("[INFO] elasped time: {:.2f}".format(fps.elapsed()))
+print("[INFO] approx. FPS: {:.2f}".format(fps.fps()))
+
 # When everything done, release the capture
-cap.release()
-cv.destroyAllWindows()
+cv2.destroyAllWindows()
+stream.stop()
