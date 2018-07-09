@@ -48,9 +48,13 @@ random.shuffle(image_paths)
 for img_path in image_paths:
     # Load the image, pre-process it, and store it in the data list
     image = cv2.imread(img_path)
-    image = cv2.resize(image, (128, 128))
-    image = img_to_array(image)
-    data.append(image)
+    try:
+        image = cv2.resize(image, (128, 128))
+        image = img_to_array(image)
+        data.append(image)
+    except:
+        print(img_path)
+        print(image)
 
     # Extract the class label from the image path and update the
     # labels list

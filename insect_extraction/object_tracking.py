@@ -2,10 +2,19 @@
 Modified from:
 https://www.learnopencv.com/object-tracking-using-opencv-cpp-python/
 """
+import argparse
+import os
+
 import cv2
 import sys
 
 (major_ver, minor_ver, subminor_ver) = cv2.__version__.split('.')
+
+# construct the argument parse and parse the arguments
+ap = argparse.ArgumentParser()
+ap.add_argument("-o", "--output", required=True,
+                help="path to save ROI images")
+args = vars(ap.parse_args())
 
 if __name__ == '__main__':
 
@@ -13,7 +22,7 @@ if __name__ == '__main__':
     # Instead of MIL, you can also use
 
     tracker_types = ['BOOSTING', 'MIL', 'KCF', 'TLD', 'MEDIANFLOW', 'GOTURN']
-    tracker_type = tracker_types[5]
+    tracker_type = tracker_types[0]
 
     if int(minor_ver) < 3:
         tracker = cv2.Tracker_create(tracker_type)
@@ -36,15 +45,13 @@ if __name__ == '__main__':
 
     # Exit if video not opened.
     if not video.isOpened():
-        print
-        "Could not open video"
+        print("Could not open video")
         sys.exit()
 
     # Read first frame.
     ok, frame = video.read()
     if not ok:
-        print
-        'Cannot read video file'
+        print('Cannot read video file')
         sys.exit()
 
     # Uncomment the line below to select a different bounding box
@@ -53,9 +60,12 @@ if __name__ == '__main__':
     # Initialize tracker with first frame and bounding box
     ok = tracker.init(frame, bbox)
 
+    counter = 0
+
     while True:
         # Read a new frame
         ok, frame = video.read()
+        counter += 1
         if not ok:
             break
 
@@ -74,6 +84,8 @@ if __name__ == '__main__':
             p1 = (int(bbox[0]), int(bbox[1]))
             p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
             cv2.rectangle(frame, p1, p2, (255, 0, 0), 2, 1)
+            roi_area = frame[p1[1]:p2[1], p1[0]:p2[0]]
+            cv2.imwrite(os.path.join(args["output"], str(counter) + ".jpg"), roi_area)
         else:
             # Tracking failure
             cv2.putText(frame, "Tracking failure detected", (100, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (0, 0, 255), 2)
