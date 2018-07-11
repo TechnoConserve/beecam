@@ -1,0 +1,8 @@
+{
+  "show_video": true,
+  "delta_thresh": 5,
+  "resolution": [640, 480],
+  "fps": 30,
+  "min_area": 5000,
+  "max_area": 10000
+}

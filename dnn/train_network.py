@@ -62,8 +62,11 @@ for img_path in image_paths:
     label = 1 if label == "Apis_mellifera" else 0
     labels.append(label)
 
-data = np.array(data, dtype="float") / 255.0
+data = np.array(data, dtype="float")
 labels = np.array(labels)
+
+print("data", data.shape)
+print("labels", labels.shape)
 
 # Partition the data into training and testing splits using 75% of
 # the data for training and the remaining 25% for testing
