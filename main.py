@@ -24,6 +24,7 @@
  Accessed on 4/29/2018
  commit 4b4f626fa58c36fdb9b038a4f8f8d277f30c73f0
 '''
+import os
 
 from AWSIoTPythonSDK.MQTTLib import AWSIoTMQTTClient
 from sense_hat import SenseHat
@@ -32,6 +33,7 @@ import argparse
 import datetime
 import json
 import logging
+import subprocess
 import time
 
 AllowedActions = ['both', 'publish', 'subscribe']
@@ -116,16 +118,42 @@ if args.mode == 'both' or args.mode == 'subscribe':
     myAWSIoTMQTTClient.subscribe(topic, 1, custom_callback)
 time.sleep(2)
 
+
+def start_stream():
+    print("Starting stream...")
+    raspivid = subprocess.Popen(['/usr/bin/raspivid', '-o', '-', '-t', '0', '-fps', '30', '-b', '4000000', '-rot',
+                                 '270', '-vs'], stdout=subprocess.PIPE)
+    ffmpeg = subprocess.Popen(['/home/pi/FFmpeg/ffmpeg', '-re', '-ar', '44100', '-ac', '2', '-acodec', 'pcm_s16le',
+                               '-f', 's16le', '-ac', '2', '-i', '/dev/zero', '-f', 'h264', '-i', '-', '-vcodec', 'copy',
+                               '-acodec', 'aac', '-ab', '128k', '-g', '120', '-strict', 'experimental', '-f', 'flv',
+                               'rtmp://a.rtmp.youtube.com/live2/' + os.environ["YOUTUBE_KEY"]],
+                              stdin=raspivid.stdout)
+    start_time = datetime.datetime.now()
+    print("{:%Y-%b-%d %H:%M:%S} - Stream started!".format(start_time))
+    return ffmpeg, start_time
+
+
+stream, stream_start = start_stream()
+
 # Publish to the same topic in a loop forever
+print("Begin logging...")
 while True:
     if args.mode == 'both' or args.mode == 'publish':
         message = {'humidity': sense.humidity,
                    'pressure': sense.pressure,
                    'temperature': sense.temperature,  # in degrees Celsius
                    'deviceID': args.clientId,
+                   'stream_began': '{:%Y-%b-%d %H:%M:%S}'.format(stream_start),
                    'time': '{:%Y-%b-%d %H:%M:%S}'.format(datetime.datetime.now())}
         messageJson = json.dumps(message)
         myAWSIoTMQTTClient.publish(topic, messageJson, 1)
         if args.mode == 'publish':
             print('Published topic %s: %s\n' % (topic, messageJson))
+
+    code = stream.poll()
+    if code is not None:
+        print("[!] Stream stopped with code", code)
+        print("[INFO] Restarting stream...")
+        stream, stream_start = start_stream()
+
     time.sleep(SENSOR_READ_DELAY)
