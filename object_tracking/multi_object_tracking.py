@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from imutils import contours
 from imutils.video import VideoStream
 import argparse
@@ -101,15 +103,15 @@ OPENCV_OBJECT_TRACKERS = {
 trackers = cv2.MultiTracker_create()
 
 
-def main(video_stream, reference_digits):
-    if reference_digits:
-        ts_box = get_timestamp_area(video_stream)
+def main(reference_digits):
+    vs = get_video_stream()
+    time_parsable = False
 
     # Loop over frames from the video stream
     while True:
         # Grab the current frame, then handle if we are using a
         # VideoStream or VideoCapture object
-        frame = video_stream.read()
+        frame = vs.read()
         frame = frame[1] if args.get("video", False) else frame
 
         # Check to see if we have reached the end of the stream
@@ -126,21 +128,18 @@ def main(video_stream, reference_digits):
             cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
 
         if reference_digits:
-            timestamp_area = frame[int(ts_box[1]):int(ts_box[1] + ts_box[3]), int(ts_box[0]):int(ts_box[0] + ts_box[2])]
-            (h, w) = timestamp_area.shape[:2]
-            first_line = timestamp_area[:int(h / 2), :w]
-            fl_classification = classify_digits(first_line, reference_digits)
-            fl_labels = [digit[0] for digit in fl_classification]
-            second_line = timestamp_area[int(h / 2):, :w]
-            sl_classification = classify_digits(second_line, reference_digits)
-            sl_labels = [digit[0] for digit in sl_classification]
+            while time_parsable is False:
+                ts_box = get_timestamp_box()
+                frame_time = get_frame_time(frame, reference_digits, ts_box)
+                if frame_time is not None:
+                    time_parsable = True
+
+            frame_time = get_frame_time(frame, reference_digits, ts_box)
 
             cv2.rectangle(frame, (int(ts_box[0]), int(ts_box[1])),
                           (int(ts_box[0] + ts_box[2]), int(ts_box[1] + ts_box[3])), (0, 0, 255), 2)
-            cv2.putText(frame, "".join(fl_labels), (int(ts_box[0]), int(ts_box[1]) - 15),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 0, 255), 2)
-            cv2.putText(frame, "".join(sl_labels), (int(ts_box[0]), int(ts_box[1]) + 60),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.65, (0, 0, 255), 2)
+            cv2.putText(frame, frame_time.strftime("%Y-%m-%d %H:%M:%S"), (int(ts_box[0]) - 30, int(ts_box[1]) + 55),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 0, 255), 2)
 
         # Show the output frame
         cv2.imshow("Frame", frame)
@@ -168,26 +167,54 @@ def main(video_stream, reference_digits):
 
     # If we are using a webcam, release the pointer
     if not args.get("video", False):
-        video_stream.stop()
+        vs.stop()
 
     # Otherwise, release the file pointer
     else:
-        video_stream.release()
+        vs.release()
 
     # Close all windows
     cv2.destroyAllWindows()
 
 
-def get_timestamp_area(video_stream):
+def get_frame_time(frame, reference_digits, ts_box):
+    timestamp_area = frame[int(ts_box[1]):int(ts_box[1] + ts_box[3]), int(ts_box[0]):int(ts_box[0] + ts_box[2])]
+    frame_time = process_timestamp_area(reference_digits, timestamp_area)
+    return frame_time
+
+
+def process_timestamp_area(reference_digits, timestamp_area):
+    (h, w) = timestamp_area.shape[:2]
+
+    first_line = timestamp_area[:int(h / 2), :w]
+    fl_classification = classify_digits(first_line, reference_digits)
+    fl_labels = [digit[0] for digit in fl_classification]
+
+    second_line = timestamp_area[int(h / 2):, :w]
+    sl_classification = classify_digits(second_line, reference_digits)
+    sl_labels = [digit[0] for digit in sl_classification]
+
+    labels = ''.join(fl_labels + sl_labels)
+    try:
+        timestamp = datetime.strptime(labels[:-2], "%Y%m%d%H%M%S")
+    except ValueError:
+        print("[!] Timestamp processing failed!\n")
+        print("Please try to reselect the area where the timestamp information appears in the frame.")
+        return None
+    return timestamp
+
+
+def get_timestamp_box():
+    vs = get_video_stream()
     print("Select the area in the frame you would like characters to be recognized.")
-    frame = video_stream.read()
+    frame = vs.read()
     frame = frame[1] if args.get("video", False) else frame
     ts_box = cv2.selectROI("Timestamp Area Selection", frame, fromCenter=False,
                            showCrosshair=True)
     return ts_box
 
 
-if __name__ == "__main__":
+def get_video_stream():
     # Grab a reference to the video file if passed as an argument
     if not args.get("video", False):
         print("[INFO] Starting video stream...")
@@ -198,6 +225,10 @@ if __name__ == "__main__":
     else:
         vs = cv2.VideoCapture(args["video"])
 
+    return vs
+
+
+if __name__ == "__main__":
     ref_digits = None
 
     # If given, parse the reference image for digit classification
@@ -211,4 +242,4 @@ if __name__ == "__main__":
         # Get the reference digits
         ref_digits = define_reference_digits(reference_contours)
 
-    main(vs, ref_digits)
+    main(ref_digits)
