@@ -107,3 +107,4 @@ venv.bak/
 
 .idea/workspace.xml
 /object_tracking/videos/
+scratch.py
